@@ -8,24 +8,26 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-steps:
+
+    steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup and Permissions on EC2
+      # Step 1: EC2 par folder banana aur permissions theek karna
+      - name: Setup Folder and Permissions
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # 1. Folder banana agar nahi hai (sudo ke sath)
+            # Folder banana agar maujood nahi hai
             sudo mkdir -p /var/www/html
-            
-            # 2. Permissions set karna
+            # Ubuntu user ko owner banana taake SCP file copy kar sakay
             sudo chown -R ubuntu:ubuntu /var/www/html
             sudo chmod -R 755 /var/www/html
 
+      # Step 2: HTML files ko EC2 ke folder mein copy karna
       - name: Copy files to EC2
         uses: appleboy/scp-action@master
         with:
@@ -34,14 +36,15 @@ steps:
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "index.html,page1.html,page2.html"
           target: "/var/www/html/"
+          strip_components: 0
 
-      # Step 3: Final permissions set karna (Web Server ke liye)
-      - name: Finalize Deployment
+      # Step 3: Nginx/Apache ke liye final permissions set karna
+      - name: Finalize Web Permissions
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Files ko web-data ownership dena taake browser sahi se load kare
+            # Files ko web server ki ownership dena
             sudo chown -R www-data:www-data /var/www/html
