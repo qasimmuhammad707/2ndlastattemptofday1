@@ -8,24 +8,24 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
-    steps:
+steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 1: EC2 par permissions set karna taake files copy ho sakein
-      - name: Set Permissions on EC2
+      - name: Setup and Permissions on EC2
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Ubuntu user ko /var/www/html ka owner banana
+            # 1. Folder banana agar nahi hai (sudo ke sath)
+            sudo mkdir -p /var/www/html
+            
+            # 2. Permissions set karna
             sudo chown -R ubuntu:ubuntu /var/www/html
             sudo chmod -R 755 /var/www/html
 
-      # Step 2: HTML files ko EC2 par copy karna
       - name: Copy files to EC2
         uses: appleboy/scp-action@master
         with:
