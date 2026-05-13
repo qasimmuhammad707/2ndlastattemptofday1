@@ -3,7 +3,7 @@ name: Deploy Website to EC2
 on:
   push:
     branches:
-      - main  # Jab aap main branch par push karenge tab chalegi
+      - main
 
 jobs:
   deploy:
@@ -13,29 +13,35 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Deploy to EC2 via SSH
+      # Step 1: EC2 par permissions set karna taake files copy ho sakein
+      - name: Set Permissions on EC2
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          # Yahan wo commands hain jo EC2 ke terminal par chalengi
           script: |
-            # 1. Web directory mein jana (Standard path for Nginx/Apache)
-            sudo chown -R $USER:$USER /var/www/html
-            
-            # 2. Purani files clean karna (Optional but recommended)
-            rm -rf /var/www/html/*
+            # Ubuntu user ko /var/www/html ka owner banana
+            sudo chown -R ubuntu:ubuntu /var/www/html
+            sudo chmod -R 755 /var/www/html
 
-            # 3. GitHub se latest code lena (Agar git setup hai) ya copy karna
-            # Is example mein hum simple copy process assume kar rahe hain jo 'scp' se hota hai
-            # Lekin simple rasta ye hai ke hum files ko direct move karein
-            
+      # Step 2: HTML files ko EC2 par copy karna
       - name: Copy files to EC2
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "index.html,page1.html,page2.html" # Jo files bhejni hain
+          source: "index.html,page1.html,page2.html"
           target: "/var/www/html/"
+
+      # Step 3: Final permissions set karna (Web Server ke liye)
+      - name: Finalize Deployment
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Files ko web-data ownership dena taake browser sahi se load kare
+            sudo chown -R www-data:www-data /var/www/html
