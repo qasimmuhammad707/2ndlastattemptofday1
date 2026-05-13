@@ -1,0 +1,41 @@
+name: Deploy Website to EC2
+
+on:
+  push:
+    branches:
+      - main  # Jab aap main branch par push karenge tab chalegi
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          # Yahan wo commands hain jo EC2 ke terminal par chalengi
+          script: |
+            # 1. Web directory mein jana (Standard path for Nginx/Apache)
+            sudo chown -R $USER:$USER /var/www/html
+            
+            # 2. Purani files clean karna (Optional but recommended)
+            rm -rf /var/www/html/*
+
+            # 3. GitHub se latest code lena (Agar git setup hai) ya copy karna
+            # Is example mein hum simple copy process assume kar rahe hain jo 'scp' se hota hai
+            # Lekin simple rasta ye hai ke hum files ko direct move karein
+            
+      - name: Copy files to EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "index.html,page1.html,page2.html" # Jo files bhejni hain
+          target: "/var/www/html/"
